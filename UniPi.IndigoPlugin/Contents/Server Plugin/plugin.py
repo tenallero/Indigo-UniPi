@@ -47,40 +47,10 @@ class Plugin(indigo.PluginBase):
         self.debugLog(u"Started " + device.deviceTypeId + ": " + device.name)
         self.addDeviceToList (device)
 
-
-    def deviceStopComm(self,device):
-        if device.deviceTypeId == u"UniPiBoard":
-            if device.id in self.boardList:
-                self.debugLog("Stoping UniPi board device: " + device.name)
-                del self.boardList[device.id]
-        if device.deviceTypeId == u"UniPiRelay":
-            if device.id in self.relayList:
-                self.debugLog("Stoping UniPi Relay device: " + device.name)
-                del self.relayList[device.id]
-        if device.deviceTypeId == u"UniPiDigitalInput":
-            if device.id in self.digitalInputList:
-                self.debugLog("Stoping UniPi digital input device: " + device.name)
-                del self.digitalInputList[device.id]
-        if device.deviceTypeId == u"UniPiAnalogInput":
-            if device.id in self.analogInputList:
-                self.debugLog("Stoping UniPi analog input device: " + device.name)
-                del self.analogInputList[device.id]
-        if device.deviceTypeId == u"UniPiAnalogOutput":
-            if device.id in self.analogOutputList:
-                self.debugLog("Stoping UniPi digital output device: " + device.name)
-                del self.analogOutputList[device.id]
-        if device.deviceTypeId == u"UniPiTempSensor":
-            if device.id in self.tempSensorList:
-                self.debugLog("Stoping temperature sensor device: " + device.name)
-                del self.tempSensorList[device.id]
-
-
     def deviceCreated(self, device):
         self.debugLog(u"Created device of type \"%s\"" % device.deviceTypeId)
-        self.addDeviceToList (device)
-
+ 
     def addDeviceToList(self,device):
-
         if device.deviceTypeId == u"UniPiBoard":
             #self.updateDeviceState (device,'state' ,'off')
             device.updateStateOnServer(key='onOffState', value=False)
@@ -124,8 +94,43 @@ class Plugin(indigo.PluginBase):
         elif device.deviceTypeId == u"UniPiTempSensor":
             device.updateStateImageOnServer(indigo.kStateImageSel.TemperatureSensorOn)
             if device.id not in self.tempSensorList:
-                self.tempSensorList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':device.pluginProps["circuit"]}
+                self.tempSensorList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':device.pluginProps["circuit"], 'logLastValue':0.0}
                 #device.pluginProps["address"] = '1wiresensor' + str(device.pluginProps["circuit"])
+
+
+    def deviceStopComm(self,device):
+        self.delDeviceFromList(device)   
+
+    def deviceDeleted(self, device):
+        indigo.server.log (u"Deleted device \"%s\" of type \"%s\"" % (device.name, device.deviceTypeId))
+        self.delDeviceFromList(device)  
+ 
+    def delDeviceFromList(self,device):
+        if device.deviceTypeId == u"UniPiBoard":
+            if device.id in self.boardList:
+                self.debugLog("Stoping UniPi board device: " + device.name)
+                del self.boardList[device.id]
+        if device.deviceTypeId == u"UniPiRelay":
+            if device.id in self.relayList:
+                self.debugLog("Stoping UniPi Relay device: " + device.name)
+                del self.relayList[device.id]
+        if device.deviceTypeId == u"UniPiDigitalInput":
+            if device.id in self.digitalInputList:
+                self.debugLog("Stoping UniPi digital input device: " + device.name)
+                del self.digitalInputList[device.id]
+        if device.deviceTypeId == u"UniPiAnalogInput":
+            if device.id in self.analogInputList:
+                self.debugLog("Stoping UniPi analog input device: " + device.name)
+                del self.analogInputList[device.id]
+        if device.deviceTypeId == u"UniPiAnalogOutput":
+            if device.id in self.analogOutputList:
+                self.debugLog("Stoping UniPi digital output device: " + device.name)
+                del self.analogOutputList[device.id]
+        if device.deviceTypeId == u"UniPiTempSensor":
+            if device.id in self.tempSensorList:
+                self.debugLog("Stoping temperature sensor device: " + device.name)
+                del self.tempSensorList[device.id]
+
 
 
     def startup(self):
@@ -609,7 +614,9 @@ class Plugin(indigo.PluginBase):
 
                         if not newValue == device.states['sensorValue']:
                             device.updateStateOnServer('sensorValue', newValue, uiValue=logValue)
-                            indigo.server.log (u'received "' + device.name + '" sensor value is ' + logValue)
+                            if abs(itemList["logLastValue"] - newValue) > 0.2:
+                                self.tempSensorList[x]["logLastValue"] = newValue
+                                indigo.server.log (u'received "' + device.name + '" sensor value is ' + logValue)
                     except Exception,e:
                         self.errorLog (u"Error: " + str(e))
                         pass
@@ -716,4 +723,17 @@ class Plugin(indigo.PluginBase):
         return
 
     def dummyVal (self,dev):
+        return
+
+    ########################################
+    # Menu Methods
+    ########################################
+    def toggleDebugging(self):
+        if self.debug:
+            indigo.server.log("Turning off debug logging")
+            self.pluginPrefs["debugEnabled"] = False                
+        else:
+            indigo.server.log("Turning on debug logging")
+            self.pluginPrefs["debugEnabled"] = True
+        self.debug = not self.debug
         return
