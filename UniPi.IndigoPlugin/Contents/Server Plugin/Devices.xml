@@ -108,6 +108,7 @@
             <Field id="counterFactor" type="textfield" defaultValue="1000">
                 <Label>Counter factor to value:</Label>
             </Field>
+            <!--
             <Field id="counterAcumReset" 
                 type="button" 
                 tooltip="Click this button to reset the acumulated value.">
@@ -115,6 +116,7 @@
                 <Title>Reset now!</Title>
                 <CallbackMethod>counterAcumResetUI</CallbackMethod>                
             </Field>
+            -->
             <Field type="checkbox" id="SupportsEnergyMeter"    defaultValue="true" hidden="true" />
             <Field type="checkbox" id="SupportsSensorValue"    defaultValue="true" hidden="true" />
             <Field type="checkbox" id="SupportsStatusRequest"  defaultValue="true" hidden="true" />
