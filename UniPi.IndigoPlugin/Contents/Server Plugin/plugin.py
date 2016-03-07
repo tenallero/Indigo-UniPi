@@ -19,16 +19,14 @@ class Plugin(indigo.PluginBase):
 
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
-
-
         self.apiVersion    = "2.0"
         # Pooling
         self.pollingInterval = 0
-
         # create empty device list
         self.boardList = {}
         self.relayList = {}
         self.digitalInputList = {}
+        self.digitalCounterList = {}
         self.analogInputList = {}
         self.analogOutputList = {}
         self.tempSensorList = {}
@@ -78,11 +76,16 @@ class Plugin(indigo.PluginBase):
         elif device.deviceTypeId == u"UniPiRelay":
             if device.id not in self.relayList:
                 self.relayList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"])}
-                device.pluginProps["address"] = 'relay' + str(device.pluginProps["circuit"])
+                #device.pluginProps["address"] = 'relay' + str(device.pluginProps["circuit"])
         elif device.deviceTypeId == u"UniPiDigitalInput":
             if device.id not in self.digitalInputList:
-                self.digitalInputList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"]), 'pulseCounter':device.pluginProps["pulseCounter"], 'units':device.pluginProps["units"]}
-                device.pluginProps["address"] = 'digitalinput' + str(device.pluginProps["circuit"])
+                self.digitalInputList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"])}
+                #device.pluginProps["address"] = 'digitalinput' + str(device.pluginProps["circuit"])
+        elif device.deviceTypeId == u"UniPiDigitalCounter":
+            if device.id not in self.digitalCounterList:
+                self.digitalCounterList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"])}
+                #device.pluginProps["address"] = 'digitalinput' + str(device.pluginProps["circuit"])
+
         elif device.deviceTypeId == u"UniPiAnalogInput":
             if device.id not in self.analogInputList:
                 self.analogInputList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"])}
@@ -99,6 +102,7 @@ class Plugin(indigo.PluginBase):
 
 
     def deviceStopComm(self,device):
+        indigo.server.log (u"Stopping device \"%s\" of type \"%s\"" % (device.name, device.deviceTypeId))
         self.delDeviceFromList(device)   
 
     def deviceDeleted(self, device):
@@ -111,24 +115,22 @@ class Plugin(indigo.PluginBase):
                 self.debugLog("Stoping UniPi board device: " + device.name)
                 del self.boardList[device.id]
         if device.deviceTypeId == u"UniPiRelay":
-            if device.id in self.relayList:
-                self.debugLog("Stoping UniPi Relay device: " + device.name)
+            if device.id in self.relayList:                
                 del self.relayList[device.id]
         if device.deviceTypeId == u"UniPiDigitalInput":
-            if device.id in self.digitalInputList:
-                self.debugLog("Stoping UniPi digital input device: " + device.name)
+            if device.id in self.digitalInputList:               
                 del self.digitalInputList[device.id]
+        if device.deviceTypeId == u"UniPiDigitalCounter":
+            if device.id in self.digitalCounterList:               
+                del self.digitalCounterList[device.id]
         if device.deviceTypeId == u"UniPiAnalogInput":
-            if device.id in self.analogInputList:
-                self.debugLog("Stoping UniPi analog input device: " + device.name)
+            if device.id in self.analogInputList:               
                 del self.analogInputList[device.id]
         if device.deviceTypeId == u"UniPiAnalogOutput":
-            if device.id in self.analogOutputList:
-                self.debugLog("Stoping UniPi digital output device: " + device.name)
+            if device.id in self.analogOutputList:               
                 del self.analogOutputList[device.id]
         if device.deviceTypeId == u"UniPiTempSensor":
-            if device.id in self.tempSensorList:
-                self.debugLog("Stoping temperature sensor device: " + device.name)
+            if device.id in self.tempSensorList:              
                 del self.tempSensorList[device.id]
 
 
@@ -184,6 +186,14 @@ class Plugin(indigo.PluginBase):
                 return (False, valuesDict, errorMsgDict)
             pass
         if typeId == u"UniPiDigitalInput":
+            if int(valuesDict[u'unipiSel']) <= 0:
+                errorMsgDict[u'unipiSel'] = u"Need to choose a Unipi device"
+                return (False, valuesDict, errorMsgDict)
+            if int(valuesDict[u'circuit']) <= 0:
+                errorMsgDict[u'circuit'] = u"Need to choose a digital input"
+                return (False, valuesDict, errorMsgDict)
+            pass
+        if typeId == u"UniPiDigitalCounter":
             if int(valuesDict[u'unipiSel']) <= 0:
                 errorMsgDict[u'unipiSel'] = u"Need to choose a Unipi device"
                 return (False, valuesDict, errorMsgDict)
@@ -291,6 +301,11 @@ class Plugin(indigo.PluginBase):
         return valuesDict
 
 
+    def counterAcumResetUI(self, valuesDict, devId, device):
+        device.updateStateOnServer(key='counterAcum', value=0)
+        device.updateStateOnServer(key='valueAcum', value=0)        
+        return valuesDict   
+
     ###################################################################
     # Concurrent Thread.
     ###################################################################
@@ -337,8 +352,7 @@ class Plugin(indigo.PluginBase):
         try:
             requestStatus = False
             obj = json.loads(message)
-            itemType = obj['dev']
-            circuit = obj['circuit']
+            itemType = obj['dev'] 
             if itemType == "relay":
                 requestStatus = True
             elif itemType == "input":
@@ -351,30 +365,19 @@ class Plugin(indigo.PluginBase):
                 requestStatus = True
         except Exception,e:
             self.errorLog(u"Websocket parsing error: " + str(e))
-            
+    
         if requestStatus:
             unipi = self.getUnipiBoardIndexFromUrl(ws.url)
             if not unipi == None:
                 deviceBoard = self.boardList[unipi]["ref"]
                 self.boardList[unipi]['websocketok'] = True
                 self.updateDeviceState (deviceBoard,'state' ,'on')
-                #deviceBoard.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
-                self.boardRequestStatus(deviceBoard,False)
-
-                try:
-                    itemAddress = obj['address']
-                except Exception,e:
-                    itemAddress = ""
-                mapObject = {
-                    "deviceBoard": deviceBoard.id,
-                    "dev": obj['dev'],
-                    "circuit": obj['circuit'],
-                    "address": itemAddress,
-                    "value": obj['value']
-                    }
+                
+                #self.boardRequestStatus(deviceBoard,False)
+                mapObject = self.getMapFromMessage(obj)
+                mapObject["deviceBoard"] = deviceBoard.id
                 self.setIndigoStateFromJson (mapObject)
-
-
+             
     def on_wserror(self, ws, error):
         self.errorLog(u"Websocket error: " + str(error))
         unipi = self.getUnipiBoardIndexFromUrl(ws.url)
@@ -515,17 +518,13 @@ class Plugin(indigo.PluginBase):
             f = urllib2.urlopen(restUrl)
         except Exception,e:
             self.errorLog (u"Error: " + str(e))
-            #if deviceBoard.states['state'] == 'on':
             if deviceBoard.states['onOffState'] == True:
-                #self.updateDeviceState (deviceBoard,'state' ,'off')
                 deviceBoard.updateStateOnServer(key='onOffState', value=False)
                 deviceBoard.updateStateImageOnServer(indigo.kStateImageSel.PowerOff)
             return False
 
         try:
-            #if deviceBoard.states['state'] == 'off':
             if deviceBoard.states['onOffState'] == False:
-                #self.updateDeviceState (deviceBoard,'state' ,'on')
                 deviceBoard.updateStateOnServer(key='onOffState', value=True)
                 deviceBoard.updateStateImageOnServer(indigo.kStateImageSel.PowerOn)
             payloadJson = f.read()
@@ -546,96 +545,189 @@ class Plugin(indigo.PluginBase):
         jsonObject = json.loads(payloadJson)
 
 
-        for itemJson in range(len(jsonObject)):
-
-            try:
-                itemAddress = jsonObject[itemJson]["address"]
-            except Exception,e:
-                itemAddress = ""
-
-            mapObject = {
-                "deviceBoard": deviceBoard.id,
-                "dev": jsonObject[itemJson]["dev"],
-                "circuit": jsonObject[itemJson]["circuit"],
-                "address": itemAddress,
-                "value": jsonObject[itemJson]["value"]
-                }
+        for itemJson in range(len(jsonObject)):   
+            mapObject = self.getMapFromMessage(jsonObject[itemJson])
+            mapObject["deviceBoard"] = deviceBoard.id
             self.setIndigoStateFromJson (mapObject)
 
+    def getMapFromMessage(self,message):
+        #self.debugLog(u"getMapFromMessage message: " + str(message))
+        mapObject = {
+            "deviceBoard": None,
+            "dev": '',
+            "indigotype":'',
+            "circuit": '0',
+            "address": '',
+            "value": 0,
+            "counter_mode": False,
+            "debounce": 0,
+            "time": 0
+                }
+                
+        mapObject["dev"] = message["dev"]
+        mapObject["circuit"] = message["circuit"]
+        mapObject["value"] = message["value"]
+
+        if message.has_key("address"):
+            mapObject["address"] = message["address"]
+        if message.has_key("counter_mode"):
+            mapObject["counter_mode"] = message["counter_mode"]
+        if message.has_key("debounce"):
+            mapObject["debounce"] = message["debounce"]
+        if message.has_key("time"):
+            mapObject["time"] = message["time"]
+            
+            
+        if mapObject["dev"] == 'relay':
+            mapObject["indigotype"] = 'UniPiRelay'
+        elif mapObject["dev"] == 'input': 
+            if mapObject["counter_mode"]:
+                mapObject["indigotype"] = 'UniPiDigitalCounter'
+            else:
+                mapObject["indigotype"] = 'UniPiDigitalInput'
+        elif mapObject["dev"] == 'ai':
+            mapObject["indigotype"] = 'UniPiAnalogInput'
+        elif mapObject["dev"] == 'ao':
+            mapObject["indigotype"] = 'UniPiAnalogOutput'
+        elif mapObject["dev"] == 'temp':
+            mapObject["indigotype"] = 'UniPiTempSensor'
+        return mapObject
 
     def setIndigoStateFromJson (self, mapObject):
-
-        deviceBoard = indigo.devices[mapObject["deviceBoard"]]
-        itemType = mapObject["dev"]
-        itemCircuit = mapObject["circuit"]
-        itemAddress = mapObject["address"]
-        itemValue = mapObject["value"]
-        if itemType == "relay":
-            for x in self.relayList:
-                itemList = self.relayList[x]
-                if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == int(itemCircuit):
-                    device = itemList["ref"]
-                    if int(itemValue) == 1:
-                        newValue = True
-                        logValue = 'on'
-                    else:
-                        newValue = False
-                        logValue = 'off'
+        if mapObject["indigotype"] == 'UniPiRelay':
+            self.setIndigoStateRelay(mapObject)
+        elif mapObject["indigotype"] == 'UniPiDigitalInput':
+            self.setIndigoStateDigitalInput(mapObject)
+        elif mapObject["indigotype"] == 'UniPiDigitalCounter':
+            self.setIndigoStateDigitalCounter(mapObject)
+        elif mapObject["indigotype"] == 'UniPiAnalogInput':
+            self.setIndigoStateAnalogInput(mapObject)
+        elif mapObject["indigotype"] == 'UniPiAnalogOutput':
+            self.setIndigoStateAnalogOutput(mapObject)
+        elif mapObject["indigotype"] == 'UniPiTempSensor':
+            self.setIndigoStateTempSensor(mapObject)
+        
+    def setIndigoStateRelay(self,mapObject):
+        deviceBoard = indigo.devices[mapObject["deviceBoard"]]        
+        itemCircuit = int(mapObject["circuit"])        
+        itemValue = int(mapObject["value"])
+        for x in self.relayList:
+            itemList = self.relayList[x]
+            if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == itemCircuit:
+                device = itemList["ref"]
+                if itemValue == 1:
+                    newValue = True
+                    logValue = 'on'
+                else:
+                    newValue = False
+                    logValue = 'off'
+                if not newValue == device.states['onOffState']:
+                    device.updateStateOnServer(key='onOffState', value=newValue)
+                    indigo.server.log (u'received "' + device.name + '" status update is ' + logValue)
+        
+    def setIndigoStateDigitalInput(self,mapObject):
+        deviceBoard = indigo.devices[mapObject["deviceBoard"]]        
+        itemCircuit = int(mapObject["circuit"])        
+        itemValue = int(mapObject["value"])
+        for x in self.digitalInputList:
+            itemList = self.digitalInputList[x]
+            if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == itemCircuit:
+                device = itemList["ref"]
+                if itemValue == 1:
+                    newValue = True
+                    logValue = 'on'
+                else:
+                    newValue = False
+                    logValue = 'off'
+                if not newValue == device.states['onOffState']:
+                    device.updateStateOnServer(key='onOffState', value=newValue)
+                    indigo.server.log (u'received "' + device.name + '" status update is ' + logValue)
+                          
+    def setIndigoStateDigitalCounter(self,mapObject):
+        deviceBoard = indigo.devices[mapObject["deviceBoard"]]        
+        itemCircuit = int(mapObject["circuit"])        
+        itemValue = int(mapObject["value"])
+        for x in self.digitalCounterList:
+            itemList = self.digitalCounterList[x]
+            if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == itemCircuit:
+                device = itemList["ref"]
+                
+                if itemValue == 1:
+                    newValue = True                    
+                else:
+                    newValue = False  
+                
+                updateCounter = False
+                if device.pluginProps["counterRaise"] and itemValue == 1:
+                    updateCounter = True
+                if not device.pluginProps["counterRaise"] and itemValue == 0:
+                    updateCounter = True    
+                if not updateCounter:
                     if not newValue == device.states['onOffState']:
                         device.updateStateOnServer(key='onOffState', value=newValue)
-                        indigo.server.log (u'received "' + device.name + '" status update is ' + logValue)
+                    break
+                
+                counterAcum = float (device.states["counterAcum"])
+                counterAcum += 1
+                self.updateDeviceState(device, "counterAcum", counterAcum)
+                
+                counterInit  = int (device.pluginProps["counterInit"])
+                if not counterInit > 0:
+                    counterInit = 0
+                counterTotal = counterInit + counterAcum
+                
+                counterFactor = float (device.pluginProps["counterFactor"])
+                if not counterFactor > 0:
+                    counterFactor = 1
+                
+                valueAcum = round ((counterTotal / counterFactor),3)
+                device.updateStateOnServer(key="valueAcum", value=valueAcum)
+                
+                logValue = str(valueAcum)
+                units = device.pluginProps["units"]
+                if units:
+                    logValue += u' '
+                    logValue += unicode(units)
+ 
+                if not valueAcum == device.states['sensorValue']:
+                    device.updateStateOnServer(key='onOffState', value=newValue)
+                    device.updateStateOnServer('sensorValue', valueAcum, uiValue=logValue)
+                                      
+                #if not newValue == device.states['onOffState']:                
+                #    device.updateStateOnServer(key='onOffState', value=newValue, uiValue=logValue)
+                #    indigo.server.log (u'received "' + device.name + u'" counter value is ' + logValue)
+                #else:
+                #    indigo.server.log (device.name + '. Qué ha pasao!!  newValue=' + str(newValue) + '. onOffState=' + str(device.states['onOffState']) )
+                    
+    def setIndigoStateAnalogInput(self,mapObject):
+        pass
+    def setIndigoStateAnalogOutput(self,mapObject):
+        #puerta.updateStateOnServer("brightnessLevel", brightnessLevel)
+        pass
+    def setIndigoStateTempSensor(self,mapObject):
+        deviceBoard = indigo.devices[mapObject["deviceBoard"]]        
+        itemCircuit = mapObject["circuit"]        
+        itemAddress = mapObject["address"]      
+        itemValue = float(mapObject["value"])
+        if itemAddress > "":
+            itemCircuit = itemAddress
+        for x in self.tempSensorList:
+            itemList = self.tempSensorList[x]
+            if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == itemCircuit:
+                device = itemList["ref"]
+                try:
+                    newValue = round(itemValue,1)
+                    logValue = str(newValue) + u" °C"
 
-        elif itemType == "input":
-            for x in self.digitalInputList:
-                itemList = self.digitalInputList[x]
-                if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == int(itemCircuit):
-                    device = itemList["ref"]
-                    if int(itemValue) == 1:
-                        newValue = True
-                        logValue = 'on'
-                    else:
-                        newValue = False
-                        logValue = 'off'
-                    if not newValue == device.states['onOffState']:
-                        
-                        if itemList["pulseCounter"] == True:
-                            
-                            counterAcum = float (device.states["counterAcum"])
-                            if newValue:
-                                counterAcum += 1
-                            self.updateDeviceState(device, "counterAcum", counterAcum)
-                            logValue = str(counterAcum) + " " + itemList["units"] #' Kw' # units
-                            device.updateStateOnServer(key='onOffState', value=newValue, uiValue=logValue)
-                            if newValue:
-                                indigo.server.log (u'received "' + device.name + '" counter is ' + logValue)
-                            
-                        else:
-                            device.updateStateOnServer(key='onOffState', value=newValue)
-                            indigo.server.log (u'received "' + device.name + '" status update is ' + logValue)
-        elif itemType == "ai":
-            pass
-        elif itemType == "ao":
-            #puerta.updateStateOnServer("brightnessLevel", brightnessLevel)
-            pass
-        elif itemType == "temp":
-            for x in self.tempSensorList:
-                itemList = self.tempSensorList[x]
-                if itemAddress > "":
-                    itemCircuit = itemAddress
-                if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == itemCircuit:
-                    device = itemList["ref"]
-                    try:
-                        newValue = round(itemValue,1)
-                        logValue = str(newValue) + u" °C"
-
-                        if not newValue == device.states['sensorValue']:
-                            device.updateStateOnServer('sensorValue', newValue, uiValue=logValue)
-                            if abs(itemList["logLastValue"] - newValue) > 0.2:
-                                self.tempSensorList[x]["logLastValue"] = newValue
-                                indigo.server.log (u'received "' + device.name + '" sensor value is ' + logValue)
-                    except Exception,e:
-                        self.errorLog (u"Error: " + str(e))
-                        pass
+                    if not newValue == device.states['sensorValue']:
+                        device.updateStateOnServer('sensorValue', newValue, uiValue=logValue)
+                        if abs(itemList["logLastValue"] - newValue) > 0.2:
+                            self.tempSensorList[x]["logLastValue"] = newValue
+                            indigo.server.log (u'received "' + device.name + '" sensor value is ' + logValue)
+                except Exception,e:
+                    self.errorLog (u"Error: " + str(e))
+                    pass
+ 
 
     def sendActionToCircuit(self, device, action):
         addressWrite = ''
@@ -678,7 +770,6 @@ class Plugin(indigo.PluginBase):
             self.errorLog (u"UniPi Board not found!")
             return
         if deviceBoard.states['onOffState'] == False:
-
             self.errorLog (deviceBoard.name + u" is lost!")
             return
 
@@ -726,12 +817,10 @@ class Plugin(indigo.PluginBase):
             payload={u'value' : str(fvalue) }
             indigo.server.log (u'Sent "' + device.name + '" ' + logaction)
 
-
         try:
             payloadEncoded = urllib.urlencode(payload)
             req = urllib2.Request(restUrl, payloadEncoded)
             response = urllib2.urlopen(req)
-
         except Exception,e:
             self.errorLog (u"Error: " + str(e))
             pass
