@@ -309,8 +309,9 @@ class Plugin(indigo.PluginBase):
         return valuesDict   
         
     def counterAcumReset(self, device):
+        #indigo.device.resetEnergyAccumTotal(device)
         device.updateStateOnServer(key='counterAcum', value=0)
-        device.updateStateOnServer(key='valueAcum', value=0) 
+        device.updateStateOnServer(key='energyAccumTotal', value=0) 
         device.updateStateOnServer(key='sensorValue', value=0, uiValue=u"(reset)")   
         indigo.server.log (u"reseting values for device \"%s\" " % (device.name))  
 
@@ -675,18 +676,23 @@ class Plugin(indigo.PluginBase):
                 if not counterFactor > 0:
                     counterFactor = 1
                 
-                valueAcum = round ((counterTotal / counterFactor),3)
-                device.updateStateOnServer(key="valueAcum", value=valueAcum)
+                energyAccumTotal = round ((counterTotal / counterFactor),3)
+                device.updateStateOnServer(key="energyAccumTotal", value=energyAccumTotal)
                 
-                logValue = str(valueAcum)
+                #devProps = device.pluginProps
+                #devProps.update({"energyAccumTotal":energyAccumTotal})
+                #device.replacePluginPropsOnServer(devProps)
+                
+                logValue = str(energyAccumTotal)
                 units = device.pluginProps["units"]
                 if units:
                     logValue += u' '
                     logValue += unicode(units)
  
-                if not valueAcum == device.states['sensorValue']:
+                if not energyAccumTotal == device.states['sensorValue']:
                     device.updateStateOnServer(key='onOffState', value=newValue)
-                    device.updateStateOnServer('sensorValue', valueAcum, uiValue=logValue)
+                    device.updateStateOnServer('sensorValue', energyAccumTotal, uiValue=logValue)
+                    #device.updateStateOnServer('energyAccumTotal', energyAccumTotal)
                     device.updateStateImageOnServer(indigo.kStateImageSel.EnergyMeterOff) 
                     indigo.server.log (u'received "' + device.name + u'" counter value is ' + logValue) 
                 else:

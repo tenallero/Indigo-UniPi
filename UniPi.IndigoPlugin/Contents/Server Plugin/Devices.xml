@@ -108,6 +108,9 @@
             <Field id="counterFactor" type="textfield" defaultValue="1000">
                 <Label>Counter factor to value:</Label>
             </Field>
+            
+            
+            
             <!--
             <Field id="counterAcumReset" 
                 type="button" 
@@ -117,9 +120,13 @@
                 <CallbackMethod>counterAcumResetUI</CallbackMethod>                
             </Field>
             -->
-            <Field type="checkbox" id="SupportsEnergyMeter"    defaultValue="true" hidden="true" />
+            
             <Field type="checkbox" id="SupportsSensorValue"    defaultValue="true" hidden="true" />
             <Field type="checkbox" id="SupportsStatusRequest"  defaultValue="true" hidden="true" />
+            <Field type="checkbox" id="SupportsEnergyMeter"    defaultValue="true" hidden="true" />
+            <Field type="checkbox" id="SupportsEnergyMeterReset"  defaultValue="true" hidden="true" />
+            <Field type="checkbox" id="SupportsEnergyMeterCurPower"  defaultValue="true" hidden="true" />
+
         </ConfigUI>
          <States>
             <State id="counterAcum" defaultValue="0">
@@ -127,19 +134,20 @@
                 <TriggerLabel>Acumulated count</TriggerLabel>
                 <ControlPageLabel>Acumulated count</ControlPageLabel>
             </State>
-        
-            <State id="valueAcum" defaultValue="0">
-                <ValueType>Number</ValueType>
-                <TriggerLabel>Acumulated value</TriggerLabel>
-                <ControlPageLabel>Acumulated value</ControlPageLabel>
-            </State>
             
+            
+            <State id="energyAccumTotal" defaultValue="0">
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Total usage</TriggerLabel>
+                <ControlPageLabel>Total usage</ControlPageLabel>
+            </State>
+            <!--
             <State id="timeStamp" defaultValue="0">
                 <ValueType>Number</ValueType>
                 <TriggerLabel>Time stamp</TriggerLabel>
                 <ControlPageLabel>Time stamp</ControlPageLabel>
             </State>
-            
+            -->
         </States>
     </Device>
 
