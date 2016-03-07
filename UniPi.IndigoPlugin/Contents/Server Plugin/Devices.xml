@@ -111,10 +111,11 @@
             <Field id="counterAcumReset" 
                 type="button" 
                 tooltip="Click this button to reset the acumulated value.">
-                <Label>You can reset acumulated counts for this device:</Label>
-                <Title>Reset acumulated!</Title>
+                <Label>Reset acumulated counts for this device:</Label>
+                <Title>Reset now!</Title>
                 <CallbackMethod>counterAcumResetUI</CallbackMethod>                
             </Field>
+            <Field type="checkbox" id="SupportsEnergyMeter"    defaultValue="true" hidden="true" />
             <Field type="checkbox" id="SupportsSensorValue"    defaultValue="true" hidden="true" />
             <Field type="checkbox" id="SupportsStatusRequest"  defaultValue="true" hidden="true" />
         </ConfigUI>

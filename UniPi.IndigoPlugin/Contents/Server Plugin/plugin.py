@@ -82,6 +82,7 @@ class Plugin(indigo.PluginBase):
                 self.digitalInputList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"])}
                 #device.pluginProps["address"] = 'digitalinput' + str(device.pluginProps["circuit"])
         elif device.deviceTypeId == u"UniPiDigitalCounter":
+            device.updateStateImageOnServer(indigo.kStateImageSel.EnergyMeterOn)
             if device.id not in self.digitalCounterList:
                 self.digitalCounterList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"])}
                 #device.pluginProps["address"] = 'digitalinput' + str(device.pluginProps["circuit"])
@@ -301,11 +302,19 @@ class Plugin(indigo.PluginBase):
         return valuesDict
 
 
-    def counterAcumResetUI(self, valuesDict, devId, device):
-        device.updateStateOnServer(key='counterAcum', value=0)
-        device.updateStateOnServer(key='valueAcum', value=0)        
+    def counterAcumResetUI(self, valuesDict, typeId, deviceId):
+        if deviceId > 0:
+            device = indigo.devices[deviceId]
+            self.counterAcumReset(device)
         return valuesDict   
+        
+    def counterAcumReset(self, device):
+        device.updateStateOnServer(key='counterAcum', value=0)
+        device.updateStateOnServer(key='valueAcum', value=0) 
+        device.updateStateOnServer(key='sensorValue', value=0, uiValue=u"(reset)")   
+        indigo.server.log (u"reseting values for device \"%s\" " % (device.name))  
 
+    
     ###################################################################
     # Concurrent Thread.
     ###################################################################
@@ -449,31 +458,9 @@ class Plugin(indigo.PluginBase):
         return typeId in (u"UniPiDigitalInput", u"UniPiAnalogInput", u"UniPiTemperatureeSensor")
 
     ###################################################################
-    # Custom Action callbacks
+    # Request Status
     ###################################################################
-
-    def actionControlSensor(self, action, dev):
-        pass
-        return
-
-    def actionControlDimmerRelay(self, action, dev):
-        if action.deviceAction == indigo.kDeviceAction.TurnOn:
-            self.sendActionToCircuit(dev, action)
-        elif action.deviceAction == indigo.kDeviceAction.TurnOff:
-            self.sendActionToCircuit(dev, action)
-        elif action.deviceAction == indigo.kDeviceAction.Toggle:
-            self.sendActionToCircuit(dev, action)
-        elif action.deviceAction == indigo.kDeviceAction.SetBrightness:
-            self.sendActionToCircuit(dev, action)
-        elif action.deviceAction == indigo.kDeviceAction.RequestStatus:
-            self.boardRequestStatus(dev,True)
-            pass
-
-    def actionControlSensor(self, action, dev):
-        if action.sensorAction == indigo.kSensorAction.RequestStatus:
-            self.boardRequestStatus(dev,True)
-            pass
-
+    
     def boardRequestStatusAll(self):
         for unipi in self.boardList:
             deviceBoard  = self.boardList[unipi]["ref"]
@@ -615,12 +602,15 @@ class Plugin(indigo.PluginBase):
             itemList = self.relayList[x]
             if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == itemCircuit:
                 device = itemList["ref"]
+                #self.debugLog(device.name + ": setIndigoStateRelay.")
+                
                 if itemValue == 1:
                     newValue = True
                     logValue = 'on'
                 else:
                     newValue = False
                     logValue = 'off'
+                
                 if not newValue == device.states['onOffState']:
                     device.updateStateOnServer(key='onOffState', value=newValue)
                     indigo.server.log (u'received "' + device.name + '" status update is ' + logValue)
@@ -633,12 +623,15 @@ class Plugin(indigo.PluginBase):
             itemList = self.digitalInputList[x]
             if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == itemCircuit:
                 device = itemList["ref"]
+                #self.debugLog(device.name + ": setIndigoStateDigitalInput.")    
+                
                 if itemValue == 1:
                     newValue = True
                     logValue = 'on'
                 else:
                     newValue = False
                     logValue = 'off'
+                
                 if not newValue == device.states['onOffState']:
                     device.updateStateOnServer(key='onOffState', value=newValue)
                     indigo.server.log (u'received "' + device.name + '" status update is ' + logValue)
@@ -651,7 +644,8 @@ class Plugin(indigo.PluginBase):
             itemList = self.digitalCounterList[x]
             if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == itemCircuit:
                 device = itemList["ref"]
-                
+                #self.debugLog(device.name + ": setIndigoStateDigitalCounter.")  
+                  
                 if itemValue == 1:
                     newValue = True                    
                 else:
@@ -665,6 +659,7 @@ class Plugin(indigo.PluginBase):
                 if not updateCounter:
                     if not newValue == device.states['onOffState']:
                         device.updateStateOnServer(key='onOffState', value=newValue)
+                        device.updateStateImageOnServer(indigo.kStateImageSel.EnergyMeterOn)
                     break
                 
                 counterAcum = float (device.states["counterAcum"])
@@ -692,12 +687,11 @@ class Plugin(indigo.PluginBase):
                 if not valueAcum == device.states['sensorValue']:
                     device.updateStateOnServer(key='onOffState', value=newValue)
                     device.updateStateOnServer('sensorValue', valueAcum, uiValue=logValue)
-                                      
-                #if not newValue == device.states['onOffState']:                
-                #    device.updateStateOnServer(key='onOffState', value=newValue, uiValue=logValue)
-                #    indigo.server.log (u'received "' + device.name + u'" counter value is ' + logValue)
-                #else:
-                #    indigo.server.log (device.name + '. Qué ha pasao!!  newValue=' + str(newValue) + '. onOffState=' + str(device.states['onOffState']) )
+                    device.updateStateImageOnServer(indigo.kStateImageSel.EnergyMeterOff) 
+                    indigo.server.log (u'received "' + device.name + u'" counter value is ' + logValue) 
+                else:
+                    indigo.server.log (device.name + '. sensorValue did not changed  newValue=' + str(newValue) + '. sensorValue=' + str(device.states['sensorValue']) )        
+                
                     
     def setIndigoStateAnalogInput(self,mapObject):
         pass
@@ -715,6 +709,8 @@ class Plugin(indigo.PluginBase):
             itemList = self.tempSensorList[x]
             if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == itemCircuit:
                 device = itemList["ref"]
+                #self.debugLog(device.name + ": setIndigoStateTempSensor.")  
+                
                 try:
                     newValue = round(itemValue,1)
                     logValue = str(newValue) + u" °C"
@@ -829,6 +825,38 @@ class Plugin(indigo.PluginBase):
 
     def dummyVal (self,dev):
         return
+
+    ###################################################################
+    # Custom Action callbacks
+    ###################################################################
+
+    def actionControlDimmerRelay(self, action, dev):
+        if action.deviceAction == indigo.kDeviceAction.TurnOn:
+            self.sendActionToCircuit(dev, action)
+        elif action.deviceAction == indigo.kDeviceAction.TurnOff:
+            self.sendActionToCircuit(dev, action)
+        elif action.deviceAction == indigo.kDeviceAction.Toggle:
+            self.sendActionToCircuit(dev, action)
+        elif action.deviceAction == indigo.kDeviceAction.SetBrightness:
+            self.sendActionToCircuit(dev, action)
+        elif action.deviceAction == indigo.kDeviceAction.RequestStatus:
+            self.boardRequestStatus(dev,True)
+            pass
+
+    def actionControlSensor(self, action, dev):
+        if action.sensorAction == indigo.kSensorAction.RequestStatus:
+            self.boardRequestStatus(dev,True)
+            pass
+    
+    def actionControlGeneral(self, action, dev):
+        if action.deviceAction == indigo.kDeviceGeneralAction.Beep:
+            pass
+        elif action.deviceAction == indigo.kDeviceGeneralAction.EnergyUpdate:
+            self.boardRequestStatus(dev,True)
+        elif action.deviceAction == indigo.kDeviceGeneralAction.EnergyReset:
+            self.counterAcumReset(dev)
+        elif action.deviceAction == indigo.kDeviceGeneralAction.RequestStatus:
+            self.boardRequestStatus(dev,True)   
 
     ########################################
     # Menu Methods
