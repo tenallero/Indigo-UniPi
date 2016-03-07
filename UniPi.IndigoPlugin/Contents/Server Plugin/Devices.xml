@@ -73,7 +73,17 @@
             <Field id="pulseCounter" type="checkbox" defaultValue="false">
                 <Label>Is a pulse counter:</Label>
             </Field>
+             <Field id="units" type="textfield" defaultValue="Kw" visibleBindingId="pulseCounter" visibleBindingValue="true">
+                <Label>Pulse unit:</Label>
+            </Field>
         </ConfigUI>
+         <States>
+            <State id="counterAcum" defaultValue="0">
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Acumulated</TriggerLabel>
+                <ControlPageLabel>Acumulated</ControlPageLabel>
+            </State>
+        </States>
     </Device>
 
 

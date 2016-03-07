@@ -81,7 +81,7 @@ class Plugin(indigo.PluginBase):
                 device.pluginProps["address"] = 'relay' + str(device.pluginProps["circuit"])
         elif device.deviceTypeId == u"UniPiDigitalInput":
             if device.id not in self.digitalInputList:
-                self.digitalInputList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"]),'pulsecounter':device.pluginProps["pulseCounter"]}
+                self.digitalInputList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"]), 'pulseCounter':device.pluginProps["pulseCounter"], 'units':device.pluginProps["units"]}
                 device.pluginProps["address"] = 'digitalinput' + str(device.pluginProps["circuit"])
         elif device.deviceTypeId == u"UniPiAnalogInput":
             if device.id not in self.analogInputList:
@@ -312,7 +312,7 @@ class Plugin(indigo.PluginBase):
                 countCheckWS = 0
                 for unipi in self.boardList:
                     if not self.boardList[unipi]['websocketok']:
-                        deviceBoard  = self.boardList[unipi]["ref"]
+                        deviceBoard = self.boardList[unipi]["ref"]
                         self.startupWebSockets (deviceBoard)
             if countCheckStatus > poolCheckStatus:
                 countCheckStatus = 0
@@ -333,22 +333,25 @@ class Plugin(indigo.PluginBase):
     ###################################################################
 
     def on_wsmessage(self, ws, message):
-
-        requestStatus = False
-        obj = json.loads(message)
-        itemType = obj['dev']
-        circuit = obj['circuit']
-        if itemType == "relay":
-            requestStatus = True
-        elif itemType == "input":
-            requestStatus = True
-        elif itemType == "ai":
-            pass
-        elif itemType == "ao":
-            pass
-        elif itemType == "temp":
-            requestStatus = True
-
+        
+        try:
+            requestStatus = False
+            obj = json.loads(message)
+            itemType = obj['dev']
+            circuit = obj['circuit']
+            if itemType == "relay":
+                requestStatus = True
+            elif itemType == "input":
+                requestStatus = True
+            elif itemType == "ai":
+                pass
+            elif itemType == "ao":
+                pass
+            elif itemType == "temp":
+                requestStatus = True
+        except Exception,e:
+            self.errorLog(u"Websocket parsing error: " + str(e))
+            
         if requestStatus:
             unipi = self.getUnipiBoardIndexFromUrl(ws.url)
             if not unipi == None:
@@ -594,8 +597,21 @@ class Plugin(indigo.PluginBase):
                         newValue = False
                         logValue = 'off'
                     if not newValue == device.states['onOffState']:
-                        device.updateStateOnServer(key='onOffState', value=newValue)
-                        indigo.server.log (u'received "' + device.name + '" status update is ' + logValue)
+                        
+                        if itemList["pulseCounter"] == True:
+                            
+                            counterAcum = float (device.states["counterAcum"])
+                            if newValue:
+                                counterAcum += 1
+                            self.updateDeviceState(device, "counterAcum", counterAcum)
+                            logValue = str(counterAcum) + " " + itemList["units"] #' Kw' # units
+                            device.updateStateOnServer(key='onOffState', value=newValue, uiValue=logValue)
+                            if newValue:
+                                indigo.server.log (u'received "' + device.name + '" counter is ' + logValue)
+                            
+                        else:
+                            device.updateStateOnServer(key='onOffState', value=newValue)
+                            indigo.server.log (u'received "' + device.name + '" status update is ' + logValue)
         elif itemType == "ai":
             pass
         elif itemType == "ao":
