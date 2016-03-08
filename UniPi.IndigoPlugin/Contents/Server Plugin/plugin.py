@@ -312,7 +312,8 @@ class Plugin(indigo.PluginBase):
         #indigo.device.resetEnergyAccumTotal(device)
         device.updateStateOnServer(key='counterAcum', value=0)
         device.updateStateOnServer(key='energyAccumTotal', value=0) 
-        device.updateStateOnServer(key='sensorValue', value=0, uiValue=u"(reset)")   
+        device.updateStateOnServer(key='sensorValue', value=0, uiValue=u"(reset)")  
+        device.updateStateOnServer(key='onOffState',value=False) 
         indigo.server.log (u"reseting values for device \"%s\" " % (device.name))  
 
     
@@ -651,6 +652,9 @@ class Plugin(indigo.PluginBase):
                     newValue = True                    
                 else:
                     newValue = False  
+                
+                if device.states['onOffState'] == newValue:
+                    break
                 
                 updateCounter = False
                 if device.pluginProps["counterRaise"] and itemValue == 1:
