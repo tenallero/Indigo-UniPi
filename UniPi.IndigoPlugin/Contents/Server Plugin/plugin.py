@@ -43,6 +43,7 @@ class Plugin(indigo.PluginBase):
 
     def deviceStartComm(self, device):
         self.debugLog(u"Started " + device.deviceTypeId + ": " + device.name)
+        device.stateListOrDisplayStateIdChanged()
         self.addDeviceToList (device)
 
     def deviceCreated(self, device):
@@ -510,12 +511,25 @@ class Plugin(indigo.PluginBase):
             if deviceBoard.states['onOffState'] == True:
                 deviceBoard.updateStateOnServer(key='onOffState', value=False)
                 deviceBoard.updateStateImageOnServer(indigo.kStateImageSel.PowerOff)
+                deviceBoard.setErrorStateOnServer('Lost')
+                for deviceItem in indigo.devices.itervalues(filter="self"):
+                    if deviceItem.pluginProps.has_key("unipiSel"):
+                        if deviceItem.pluginProps.["unipiSel"] == deviceBoard.id:        
+                            deviceItem.setErrorStateOnServer('Lost')              
+                        
+                        
             return False
 
         try:
             if deviceBoard.states['onOffState'] == False:
+                deviceBoard.setErrorStateOnServer(None)
                 deviceBoard.updateStateOnServer(key='onOffState', value=True)
-                deviceBoard.updateStateImageOnServer(indigo.kStateImageSel.PowerOn)
+                deviceBoard.updateStateImageOnServer(indigo.kStateImageSel.PowerOn)                
+                for deviceItem in indigo.devices.itervalues(filter="self"):
+                    if deviceItem.pluginProps.has_key("unipiSel"):
+                        if deviceItem.pluginProps.["unipiSel"] == deviceBoard.id:        
+                            deviceItem.setErrorStateOnServer(None)        
+                        
             payloadJson = f.read()
             if payloadJson == None:
                 self.errorLog(device.name + ": nothing received.")
@@ -681,7 +695,7 @@ class Plugin(indigo.PluginBase):
                     counterFactor = 1
                 
                 energyAccumTotal = round ((counterTotal / counterFactor),3)
-                device.updateStateOnServer(key="energyAccumTotal", value=energyAccumTotal)
+                device.updateStateOnServer(key="energyAccumTotal", value=energyAccumTotal, decimalPlaces=3)
                 
                 #devProps = device.pluginProps
                 #devProps.update({"energyAccumTotal":energyAccumTotal})
@@ -696,7 +710,7 @@ class Plugin(indigo.PluginBase):
                 if not energyAccumTotal == device.states['sensorValue']:
                     device.updateStateOnServer(key='onOffState', value=newValue)
                     device.updateStateOnServer('sensorValue', energyAccumTotal, uiValue=logValue)
-                    #device.updateStateOnServer('energyAccumTotal', energyAccumTotal)
+                    #device.updateStateOnServer('energyAccumTotal', energyAccumTotal, decimalPlaces=3)
                     device.updateStateImageOnServer(indigo.kStateImageSel.EnergyMeterOff) 
                     indigo.server.log (u'received "' + device.name + u'" counter value is ' + logValue) 
                 else:
