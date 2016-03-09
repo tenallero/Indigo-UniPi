@@ -14,6 +14,7 @@ import urllib
 import urllib2
 import thread
 import threading
+from ghpu import GitHubPluginUpdater
 
 class Plugin(indigo.PluginBase):
 
@@ -514,7 +515,7 @@ class Plugin(indigo.PluginBase):
                 deviceBoard.setErrorStateOnServer('Lost')
                 for deviceItem in indigo.devices.itervalues(filter="self"):
                     if deviceItem.pluginProps.has_key("unipiSel"):
-                        if deviceItem.pluginProps.["unipiSel"] == deviceBoard.id:        
+                        if deviceItem.pluginProps["unipiSel"] == deviceBoard.id:        
                             deviceItem.setErrorStateOnServer('Lost')              
                         
                         
@@ -527,7 +528,7 @@ class Plugin(indigo.PluginBase):
                 deviceBoard.updateStateImageOnServer(indigo.kStateImageSel.PowerOn)                
                 for deviceItem in indigo.devices.itervalues(filter="self"):
                     if deviceItem.pluginProps.has_key("unipiSel"):
-                        if deviceItem.pluginProps.["unipiSel"] == deviceBoard.id:        
+                        if deviceItem.pluginProps["unipiSel"] == deviceBoard.id:        
                             deviceItem.setErrorStateOnServer(None)        
                         
             payloadJson = f.read()
