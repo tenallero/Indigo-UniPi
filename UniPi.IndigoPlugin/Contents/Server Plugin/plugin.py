@@ -19,6 +19,7 @@ class Plugin(indigo.PluginBase):
 
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
+        self.updater = GitHubPluginUpdater('tenallero', 'Indigo-UniPi', self)
         self.apiVersion    = "2.0"
         # Pooling
         self.pollingInterval = 0
@@ -135,11 +136,10 @@ class Plugin(indigo.PluginBase):
             if device.id in self.tempSensorList:              
                 del self.tempSensorList[device.id]
 
-
-
     def startup(self):
         self.loadPluginPrefs()
         self.debugLog(u"startup called")
+        self.updater.checkForUpdate()
 
     def shutdown(self):
         self.debugLog(u"shutdown called")
@@ -894,3 +894,12 @@ class Plugin(indigo.PluginBase):
             self.pluginPrefs["debugEnabled"] = True
         self.debug = not self.debug
         return
+
+    def checkForUpdates(self):
+        update = self.updater.checkForUpdate() 
+        if (update != None):
+            pass
+        return    
+
+    def updatePlugin(self):
+        self.updater.update()
