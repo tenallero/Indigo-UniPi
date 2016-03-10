@@ -755,8 +755,8 @@ class Plugin(indigo.PluginBase):
                 if not accumEnergyTotal == device.states['accumEnergyTotal']:
                     now     = datetime.datetime.now()
                     segment = now - datetime.timedelta(seconds=30)
-                    self.digitalCounterList[x]['pulseHistor'].insert(0,now)
                     
+                    self.digitalCounterList[x]['pulseHistor'].insert(0,now)                    
                     
                     device.updateStateOnServer(key='onOffState', value=newValue)
                     device.updateStateOnServer("accumEnergyTotal", accumEnergyTotal, uiValue=logValue, decimalPlaces=3)
