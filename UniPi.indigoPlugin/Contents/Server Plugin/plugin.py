@@ -45,6 +45,7 @@ class Plugin(indigo.PluginBase):
 
     def deviceStartComm(self, device):
         self.debugLog(u"Started " + device.deviceTypeId + ": " + device.name)
+        self.deviceUpdateAddress(device)
         device.stateListOrDisplayStateIdChanged()
         self.addDeviceToList (device)
 
@@ -79,32 +80,61 @@ class Plugin(indigo.PluginBase):
         elif device.deviceTypeId == u"UniPiRelay":
             if device.id not in self.relayList:
                 self.relayList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"])}
-                #device.pluginProps["address"] = 'relay' + str(device.pluginProps["circuit"])
+                
+                 
         elif device.deviceTypeId == u"UniPiDigitalInput":
             if device.id not in self.digitalInputList:
                 self.digitalInputList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"])}
-                #device.pluginProps["address"] = 'digitalinput' + str(device.pluginProps["circuit"])
+               
+                
         elif device.deviceTypeId == u"UniPiDigitalCounter":
             device.updateStateImageOnServer(indigo.kStateImageSel.EnergyMeterOn)
             if device.id not in self.digitalCounterList:
-                self.digitalCounterList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"])}
-                #device.pluginProps["address"] = 'digitalinput' + str(device.pluginProps["circuit"])
-
+                self.digitalCounterList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"]), 'pulseHistor':[]}
+                
         elif device.deviceTypeId == u"UniPiAnalogInput":
             if device.id not in self.analogInputList:
                 self.analogInputList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"])}
-                #device.pluginProps["address"] = 'analoginput' + str(device.pluginProps["circuit"])
+                
         elif device.deviceTypeId == u"UniPiAnalogOutput":
             if device.id not in self.analogOutputList:
                 self.analogOutputList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"])}
-                #device.pluginProps["address"] = 'analogoutput' + str(device.pluginProps["circuit"])
+                
         elif device.deviceTypeId == u"UniPiTempSensor":
             device.updateStateImageOnServer(indigo.kStateImageSel.TemperatureSensorOn)
             if device.id not in self.tempSensorList:
                 self.tempSensorList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':device.pluginProps["circuit"], 'logLastValue':0.0}
-                #device.pluginProps["address"] = '1wiresensor' + str(device.pluginProps["circuit"])
+              
+               
 
+    def deviceUpdateAddress(self,device):
+        if device.deviceTypeId == u"UniPiRelay":
+            newAddress = 'DO-' + str(device.pluginProps["circuit"])
+                 
+        elif device.deviceTypeId == u"UniPiDigitalInput":
+            newAddress = 'DI-' + str(device.pluginProps["circuit"]) 
+                
+        elif device.deviceTypeId == u"UniPiDigitalCounter":
+            newAddress = 'DI-' + str(device.pluginProps["circuit"])                
 
+        elif device.deviceTypeId == u"UniPiAnalogInput":
+            newAddress = 'AI-' + str(device.pluginProps["circuit"]) 
+            
+        elif device.deviceTypeId == u"UniPiAnalogOutput":
+           newAddress = 'AO-' + str(device.pluginProps["circuit"])
+           
+        elif device.deviceTypeId == u"UniPiTempSensor":
+            newAddress = '1Wire-' + str(device.pluginProps["circuit"])
+       
+        if newAddress:
+            if not device.pluginProps["address"] == newAddress:
+                devProps = device.pluginProps
+                device["address"] = newAddress
+                device.replacePluginPropsOnServer(devProps)
+                
+    def didDeviceCommPropertyChange(self, origDev, newDev)
+        return False
+    
     def deviceStopComm(self,device):
         indigo.server.log (u"Stopping device \"%s\" of type \"%s\"" % (device.name, device.deviceTypeId))
         self.delDeviceFromList(device)   
@@ -721,10 +751,14 @@ class Plugin(indigo.PluginBase):
                     logValue += unicode(units)
  
                 if not accumEnergyTotal == device.states['accumEnergyTotal']:
+                    now     = datetime.datetime.now()
+                    segment = now - datetime.timedelta(seconds=30)
+                    self.digitalCounterList[x]['pulseHistor'].insert(now,0)
+                    
+                    
                     device.updateStateOnServer(key='onOffState', value=newValue)
-                    device.updateStateOnServer("accumEnergyTotal", accumEnergyTotal, uiValue=logValue)
-                    device.updateStateOnServer('sensorValue', accumEnergyTotal, uiValue=logValue)
-                    #device.updateStateOnServer('accumEnergyTotal', accumEnergyTotal, decimalPlaces=3)
+                    device.updateStateOnServer("accumEnergyTotal", accumEnergyTotal, uiValue=logValue, decimalPlaces=3)
+                    device.updateStateOnServer('sensorValue', accumEnergyTotal, uiValue=logValue)                    
                     device.updateStateImageOnServer(indigo.kStateImageSel.EnergyMeterOff) 
                     indigo.server.log (u'received "' + device.name + u'" counter value is ' + logValue) 
                 else:
