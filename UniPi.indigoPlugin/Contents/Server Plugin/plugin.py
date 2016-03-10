@@ -697,7 +697,7 @@ class Plugin(indigo.PluginBase):
                 
                 energyAccumTotal = round ((counterTotal / counterFactor),3)
                 device.updateStateOnServer(key="energyAccumTotal", value=energyAccumTotal, decimalPlaces=3)
-                
+                device.updateStateOnServer(key="accumEnergyTotal", value=energyAccumTotal)
                 #devProps = device.pluginProps
                 #devProps.update({"energyAccumTotal":energyAccumTotal})
                 #device.replacePluginPropsOnServer(devProps)
