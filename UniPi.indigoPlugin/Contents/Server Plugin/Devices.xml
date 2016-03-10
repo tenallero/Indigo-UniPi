@@ -44,7 +44,7 @@
         <Name>UniPi Relay</Name>
         <ConfigUI>
             <SupportURL></SupportURL>
-            <Field id="address" type="textfield" hidden="yes"/>
+            <Field id="address" type="textfield" hidden="true"/>
             <Field id="unipiSel" type="menu">
                 <Label>UniPi board:</Label>
                 <List class="self" method="menuListUniPi" />
@@ -62,7 +62,7 @@
         <Name>UniPi Digital Input</Name>
         <ConfigUI>
             <SupportURL></SupportURL>
-            <Field id="address" type="textfield" hidden="yes"/>
+            <Field id="address" type="textfield" hidden="true"/>
             <Field id="unipiSel" type="menu">
                 <Label>UniPi board:</Label>
                 <List class="self" method="menuListUniPi" />
@@ -80,7 +80,7 @@
         <Name>UniPi Digital Counter</Name>
         <ConfigUI>
             <SupportURL></SupportURL>
-            <Field id="address" type="textfield" hidden="yes"/>
+            <Field id="address" type="textfield" hidden="true"/>
             <Field id="unipiSel" type="menu">
                 <Label>UniPi board:</Label>
                 <List class="self" method="menuListUniPi" />
@@ -149,7 +149,7 @@
         <Name>UniPi Analog Output</Name>
         <ConfigUI>
             <SupportURL></SupportURL>
-            <Field id="address" type="textfield" hidden="yes"/>
+            <Field id="address" type="textfield" hidden="true"/>
             <Field id="unipiSel" type="menu">
                 <Label>UniPi board:</Label>
                 <List class="self" method="menuListUniPi" />
@@ -167,7 +167,7 @@
         <Name>UniPi Analog Input</Name>
         <ConfigUI>
             <SupportURL></SupportURL>
-            <Field id="address" type="textfield" hidden="yes"/>
+            <Field id="address" type="textfield" hidden="true"/>
             <Field id="unipiSel" type="menu">
                 <Label>UniPi board:</Label>
                 <List class="self" method="menuListUniPi" />
@@ -184,14 +184,21 @@
     </Device>
 
     <Device type="sensor" id="UniPiTempSensor">
-         <Name>UniPi Temperature sensor</Name>
-         <ConfigUI>
-             <SupportURL></SupportURL>
-             <Field id="address" type="textfield" hidden="yes"/>
-             <Field id="unipiSel" type="menu">
-                  <Label>UniPi board:</Label>
-                  <List class="self" method="menuListUniPi" />
-              <Field type="checkbox" id="SupportsStatusRequest"  defaultValue="true" hidden="true" />
-          </ConfigUI>
-      </Device>
+        <Name>UniPi Temperature sensor</Name>
+        <ConfigUI>
+            <SupportURL></SupportURL>
+            <Field id="address" type="textfield" hidden="true"/>
+            <Field id="unipiSel" type="menu">
+                <Label>UniPi board:</Label>
+                <List class="self" method="menuListUniPi" />
+                <CallbackMethod>menuClearSelDev</CallbackMethod>
+            </Field>
+            <Field id="circuit" type="textfield">
+                <Label>1-Wire address:</Label>
+            </Field>
+            <Field type="checkbox" id="SupportsSensorValue"    defaultValue="true" hidden="true" />
+            <Field type="checkbox" id="SupportsStatusRequest"  defaultValue="true" hidden="true" />
+        </ConfigUI>
+    </Device>
+ 
 </Devices>
