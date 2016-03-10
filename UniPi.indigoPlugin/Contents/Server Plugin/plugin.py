@@ -312,11 +312,12 @@ class Plugin(indigo.PluginBase):
         
     def counterAcumReset(self, device):
         #indigo.device.resetaccumEnergyTotal(device)
+        indigo.server.log (u"reseting values for device \"%s\" " % (device.name))  
         device.updateStateOnServer(key='counterAcum', value=0)
         device.updateStateOnServer(key='accumEnergyTotal', value=0) 
         device.updateStateOnServer(key='sensorValue', value=0, uiValue=u"(reset)")  
         device.updateStateOnServer(key='onOffState',value=False) 
-        indigo.server.log (u"reseting values for device \"%s\" " % (device.name))  
+        
 
     
     ###################################################################
