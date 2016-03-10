@@ -125,14 +125,16 @@ class Plugin(indigo.PluginBase):
            
         elif device.deviceTypeId == u"UniPiTempSensor":
             newAddress = '1Wire-' + str(device.pluginProps["circuit"])
-       
+            
+        return
+        
         if newAddress:
             if not device.pluginProps["address"] == newAddress:
                 devProps = device.pluginProps
                 device["address"] = newAddress
                 device.replacePluginPropsOnServer(devProps)
                 
-    def didDeviceCommPropertyChange(self, origDev, newDev)
+    def didDeviceCommPropertyChange(self, origDev, newDev):
         return False
     
     def deviceStopComm(self,device):
@@ -753,7 +755,7 @@ class Plugin(indigo.PluginBase):
                 if not accumEnergyTotal == device.states['accumEnergyTotal']:
                     now     = datetime.datetime.now()
                     segment = now - datetime.timedelta(seconds=30)
-                    self.digitalCounterList[x]['pulseHistor'].insert(now,0)
+                    self.digitalCounterList[x]['pulseHistor'].insert(0,now)
                     
                     
                     device.updateStateOnServer(key='onOffState', value=newValue)

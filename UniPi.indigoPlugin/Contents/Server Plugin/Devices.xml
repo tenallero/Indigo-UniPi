@@ -44,6 +44,7 @@
         <Name>UniPi Relay</Name>
         <ConfigUI>
             <SupportURL></SupportURL>
+           <!-- <Field id="address" type="textfield" hidden="yes"/> -->
             <Field id="unipiSel" type="menu">
                 <Label>UniPi board:</Label>
                 <List class="self" method="menuListUniPi" />
@@ -61,6 +62,7 @@
         <Name>UniPi Digital Input</Name>
         <ConfigUI>
             <SupportURL></SupportURL>
+           <!-- <Field id="address" type="textfield" hidden="yes"/> -->
             <Field id="unipiSel" type="menu">
                 <Label>UniPi board:</Label>
                 <List class="self" method="menuListUniPi" />
@@ -78,6 +80,7 @@
         <Name>UniPi Digital Counter</Name>
         <ConfigUI>
             <SupportURL></SupportURL>
+           <!-- <Field id="address" type="textfield" hidden="yes"/> -->
             <Field id="unipiSel" type="menu">
                 <Label>UniPi board:</Label>
                 <List class="self" method="menuListUniPi" />
@@ -146,6 +149,7 @@
         <Name>UniPi Analog Output</Name>
         <ConfigUI>
             <SupportURL></SupportURL>
+           <!-- <Field id="address" type="textfield" hidden="yes"/> -->
             <Field id="unipiSel" type="menu">
                 <Label>UniPi board:</Label>
                 <List class="self" method="menuListUniPi" />
@@ -163,6 +167,7 @@
         <Name>UniPi Analog Input</Name>
         <ConfigUI>
             <SupportURL></SupportURL>
+           <!-- <Field id="address" type="textfield" hidden="yes"/> -->
             <Field id="unipiSel" type="menu">
                 <Label>UniPi board:</Label>
                 <List class="self" method="menuListUniPi" />
@@ -182,6 +187,196 @@
         <Name>UniPi Temperature sensor</Name>
         <ConfigUI>
             <SupportURL></SupportURL>
+            <?xml version="1.0"?>
+<Devices>
+    <!-- Unipi Device -->
+    <Device type="sensor" id="UniPiBoard">
+        <Name>UniPi Board</Name>
+        <ConfigUI>
+            <Field id="label2" type="label">
+                <Label>Connection from Indigo to UniPi</Label>
+            </Field>
+            <Field id="simpleSeparator1" type="separator"/>
+            <Field id="portintro1" type="label" fontSize="small" fontColor="darkgray">
+                <Label>You can send commands to a UniPi device in your LAN.</Label>
+            </Field>
+            <Field id="portintro2" type="label" fontSize="small" fontColor="darkgray">
+                <Label>Every RaspberryPI has an IP address and TCP port where they are listening for these commands.</Label>
+            </Field>
+            <Field id="address" type="textfield">
+                <Label>RaspberryPI IP Address:</Label>
+                <Description>Enter the IP address of your RaspberryPI</Description>
+            </Field>
+            <Field id="port" type="textfield" defaultValue="80" >
+                <Label>TCP Port:</Label>
+                <Description>Enter the TCP port where this UniPi Evok server is listening</Description>
+            </Field>
+        </ConfigUI>
+        <UiDisplayStateId>state</UiDisplayStateId>
+        <States>
+            <State id="state" defaultValue="off">
+                <ValueType>
+                    <List>
+                        <Option value="on">on</Option>
+                        <Option value="off">off</Option>
+                    </List>
+                </ValueType>
+                <TriggerLabel>UniPi state changed</TriggerLabel>
+                <TriggerLabelPrefix>UniPi state is</TriggerLabelPrefix>
+                <ControlPageLabel>UniPi is</ControlPageLabel>
+                <ControlPageLabelPrefix>UniPi is</ControlPageLabelPrefix>
+            </State>
+        </States>
+    </Device>
+
+    <Device type="relay" id="UniPiRelay">
+        <Name>UniPi Relay</Name>
+        <ConfigUI>
+            <SupportURL></SupportURL>
+           <!-- <Field id="address" type="textfield" hidden="yes"/> -->
+            <Field id="unipiSel" type="menu">
+                <Label>UniPi board:</Label>
+                <List class="self" method="menuListUniPi" />
+                <CallbackMethod>menuClearSelDev</CallbackMethod>
+            </Field>
+            <Field id="circuit" type="menu">
+                <Label>Relay:</Label>
+                <List class="self" method="menuListRelay" dynamicReload="yes" />
+            </Field>
+
+        </ConfigUI>
+     </Device>
+
+     <Device type="sensor" id="UniPiDigitalInput">
+        <Name>UniPi Digital Input</Name>
+        <ConfigUI>
+            <SupportURL></SupportURL>
+           <!-- <Field id="address" type="textfield" hidden="yes"/> -->
+            <Field id="unipiSel" type="menu">
+                <Label>UniPi board:</Label>
+                <List class="self" method="menuListUniPi" />
+                <CallbackMethod>menuClearSelDev</CallbackMethod>
+            </Field>
+            <Field id="circuit" type="menu">
+                <Label>Digital Input:</Label>
+                <List class="self" method="menuListDigitalInput" dynamicReload="yes" />
+            </Field>            
+            <Field type="checkbox" id="SupportsStatusRequest"  defaultValue="true" hidden="true" />
+        </ConfigUI>         
+    </Device>
+
+     <Device type="sensor" id="UniPiDigitalCounter">
+        <Name>UniPi Digital Counter</Name>
+        <ConfigUI>
+            <SupportURL></SupportURL>
+           <!-- <Field id="address" type="textfield" hidden="yes"/> -->
+            <Field id="unipiSel" type="menu">
+                <Label>UniPi board:</Label>
+                <List class="self" method="menuListUniPi" />
+                <CallbackMethod>menuClearSelDev</CallbackMethod>
+            </Field>
+            <Field id="circuit" type="menu">
+                <Label>Digital Input:</Label>
+                <List class="self" method="menuListDigitalInput" dynamicReload="yes" />
+            </Field>           
+   
+    
+            <Field id="counterRaise" type="checkbox" defaultValue="true">
+                <Label>counter mode on raise:</Label>
+            </Field>
+            
+            <Field id="counterDebounce" type="textfield" defaultValue="0">
+                <Label>Unipi counter debounce:</Label>
+            </Field>
+            
+            <Field id="counterInitialValue" type="textfield" defaultValue="0">
+                <Label>Counter initial value:</Label>
+            </Field>
+            
+            <Field id="units" type="textfield" defaultValue="kWh" >
+                <Label>Units to show:</Label>
+            </Field>
+            
+            <Field id="counterFactor" type="textfield" defaultValue="1000">
+                <Label>Counter factor to value:</Label>
+            </Field>        
+            
+            <Field type="checkbox" id="SupportsSensorValue"         defaultValue="true" hidden="true" />
+            <Field type="checkbox" id="SupportsStatusRequest"       defaultValue="true" hidden="true" />
+            <Field type="checkbox" id="SupportsEnergyMeter"         defaultValue="true" hidden="true" />
+            <Field type="checkbox" id="SupportsEnergyMeterReset"    defaultValue="true" hidden="true" />
+            <Field type="checkbox" id="SupportsEnergyMeterCurPower" defaultValue="true" hidden="true" />
+
+        </ConfigUI>
+         <States>
+            <State id="counterAcum" defaultValue="0">
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Acumulated count</TriggerLabel>
+                <ControlPageLabel>Acumulated count</ControlPageLabel>
+            </State>
+            
+            <!--
+            <State id="energyAccumTotal" defaultValue="0">
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Total usage</TriggerLabel>
+                <ControlPageLabel>Total usage</ControlPageLabel>
+            </State>
+            -->
+            <!--
+            <State id="timeStamp" defaultValue="0">
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Time stamp</TriggerLabel>
+                <ControlPageLabel>Time stamp</ControlPageLabel>
+            </State>
+            -->
+        </States>
+    </Device>
+
+
+
+    <Device type="dimmer" id="UniPiAnalogOutput">
+        <Name>UniPi Analog Output</Name>
+        <ConfigUI>
+            <SupportURL></SupportURL>
+           <!-- <Field id="address" type="textfield" hidden="yes"/> -->
+            <Field id="unipiSel" type="menu">
+                <Label>UniPi board:</Label>
+                <List class="self" method="menuListUniPi" />
+                <CallbackMethod>menuClearSelDev</CallbackMethod>
+            </Field>
+            <Field id="circuit" type="menu">
+                <Label>Analog Output:</Label>
+                <List class="self" method="menuListAnalogOutput" dynamicReload="yes" />
+            </Field>
+
+        </ConfigUI>
+    </Device>
+
+    <Device type="sensor" id="UniPiAnalogInput">
+        <Name>UniPi Analog Input</Name>
+        <ConfigUI>
+            <SupportURL></SupportURL>
+           <!-- <Field id="address" type="textfield" hidden="yes"/> -->
+            <Field id="unipiSel" type="menu">
+                <Label>UniPi board:</Label>
+                <List class="self" method="menuListUniPi" />
+                <CallbackMethod>menuClearSelDev</CallbackMethod>
+            </Field>
+            <Field id="circuit" type="menu">
+                <Label>Analog Input:</Label>
+                <List class="self" method="menuListAnalogInput" dynamicReload="yes" />
+            </Field>
+            <Field type="checkbox" id="SupportsSensorValue"    defaultValue="true" hidden="true" />
+            <Field type="checkbox" id="SupportsStatusRequest"  defaultValue="true" hidden="true" />
+
+        </ConfigUI>
+    </Device>
+
+    <Device type="sensor" id="UniPiTempSensor">
+        <Name>UniPi Temperature sensor</Name>
+        <ConfigUI>
+            <SupportURL></SupportURL>
+           <!-- <Field id="address" type="textfield" hidden="yes"/> -->
             <Field id="unipiSel" type="menu">
                 <Label>UniPi board:</Label>
                 <List class="self" method="menuListUniPi" />
@@ -194,6 +389,4 @@
             <Field type="checkbox" id="SupportsStatusRequest"  defaultValue="true" hidden="true" />
         </ConfigUI>
     </Device>
-
-
 </Devices>
