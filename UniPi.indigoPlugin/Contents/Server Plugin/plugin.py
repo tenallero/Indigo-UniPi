@@ -311,9 +311,9 @@ class Plugin(indigo.PluginBase):
         return valuesDict   
         
     def counterAcumReset(self, device):
-        #indigo.device.resetEnergyAccumTotal(device)
+        #indigo.device.resetaccumEnergyTotal(device)
         device.updateStateOnServer(key='counterAcum', value=0)
-        device.updateStateOnServer(key='energyAccumTotal', value=0) 
+        device.updateStateOnServer(key='accumEnergyTotal', value=0) 
         device.updateStateOnServer(key='sensorValue', value=0, uiValue=u"(reset)")  
         device.updateStateOnServer(key='onOffState',value=False) 
         indigo.server.log (u"reseting values for device \"%s\" " % (device.name))  
@@ -686,32 +686,44 @@ class Plugin(indigo.PluginBase):
                 counterAcum += 1
                 self.updateDeviceState(device, "counterAcum", counterAcum)
                 
-                counterInit  = int (device.pluginProps["counterInit"])
-                if not counterInit > 0:
-                    counterInit = 0
-                counterTotal = counterInit + counterAcum
+                counterInitialValue  = int (device.pluginProps["counterInitialValue"])
+                if not counterInitialValue > 0:
+                    counterInitialValue = 0
+                counterTotal = counterInitialValue + counterAcum
                 
                 counterFactor = float (device.pluginProps["counterFactor"])
                 if not counterFactor > 0:
                     counterFactor = 1
                 
-                energyAccumTotal = round ((counterTotal / counterFactor),3)
-                device.updateStateOnServer(key="energyAccumTotal", value=energyAccumTotal, decimalPlaces=3)
-                device.updateStateOnServer(key="accumEnergyTotal", value=energyAccumTotal)
+                accumEnergyTotal = round ((counterTotal / counterFactor),3)
+                #device.updateStateOnServer(key="accumEnergyTotal", value=accumEnergyTotal, decimalPlaces=3)
+                #device.updateStateOnServer(key="accumEnergyTotal", value=accumEnergyTotal)
                 #devProps = device.pluginProps
-                #devProps.update({"energyAccumTotal":energyAccumTotal})
+                #devProps.update({"accumEnergyTotal":accumEnergyTotal})
                 #device.replacePluginPropsOnServer(devProps)
                 
-                logValue = str(energyAccumTotal)
+                # accumEnergyTotal
+                # accumEnergyTotal.ui
+                # curEnergyLevel
+                # curEnergyLevel.ui
+                # energyAccumBaseTime
+                # energyAccumBaseTime.ui
+                # accumEnergyTimeDelta
+                # accumEnergyTimeDelta.ui
+            
+                
+                
+                logValue = str(accumEnergyTotal)
                 units = device.pluginProps["units"]
                 if units:
                     logValue += u' '
                     logValue += unicode(units)
  
-                if not energyAccumTotal == device.states['sensorValue']:
+                if not accumEnergyTotal == device.states['accumEnergyTotal']:
                     device.updateStateOnServer(key='onOffState', value=newValue)
-                    device.updateStateOnServer('sensorValue', energyAccumTotal, uiValue=logValue)
-                    #device.updateStateOnServer('energyAccumTotal', energyAccumTotal, decimalPlaces=3)
+                    device.updateStateOnServer("accumEnergyTotal", accumEnergyTotal, uiValue=logValue)
+                    device.updateStateOnServer('sensorValue', accumEnergyTotal, uiValue=logValue)
+                    #device.updateStateOnServer('accumEnergyTotal', accumEnergyTotal, decimalPlaces=3)
                     device.updateStateImageOnServer(indigo.kStateImageSel.EnergyMeterOff) 
                     indigo.server.log (u'received "' + device.name + u'" counter value is ' + logValue) 
                 else:
