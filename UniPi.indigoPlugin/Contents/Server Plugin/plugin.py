@@ -108,21 +108,17 @@ class Plugin(indigo.PluginBase):
                
 
     def deviceUpdateAddress(self,device):
+        newAddress = ''
         if device.deviceTypeId == u"UniPiRelay":
-            newAddress = 'DO-' + str(device.pluginProps["circuit"])
-                 
+            newAddress = 'DO-' + str(device.pluginProps["circuit"])                 
         elif device.deviceTypeId == u"UniPiDigitalInput":
-            newAddress = 'DI-' + str(device.pluginProps["circuit"]) 
-                
-        elif device.deviceTypeId == u"UniPiDigitalCounter":
             newAddress = 'DI-' + str(device.pluginProps["circuit"])                
-
+        elif device.deviceTypeId == u"UniPiDigitalCounter":
+            newAddress = 'DI-' + str(device.pluginProps["circuit"])              
         elif device.deviceTypeId == u"UniPiAnalogInput":
-            newAddress = 'AI-' + str(device.pluginProps["circuit"]) 
-            
+            newAddress = 'AI-' + str(device.pluginProps["circuit"])
         elif device.deviceTypeId == u"UniPiAnalogOutput":
-           newAddress = 'AO-' + str(device.pluginProps["circuit"])
-           
+            newAddress = 'AO-' + str(device.pluginProps["circuit"])
         elif device.deviceTypeId == u"UniPiTempSensor":
             newAddress = '1Wire-' + str(device.pluginProps["circuit"])
             
@@ -753,10 +749,17 @@ class Plugin(indigo.PluginBase):
                     logValue += unicode(units)
  
                 if not accumEnergyTotal == device.states['accumEnergyTotal']:
-                    now     = datetime.datetime.now()
-                    segment = now - datetime.timedelta(seconds=30)
+                    now   = datetime.datetime.now()       
+                    self.digitalCounterList[x]['pulseHistor'].insert(0,now)  
                     
-                    self.digitalCounterList[x]['pulseHistor'].insert(0,now)                    
+                    now30 = now - datetime.timedelta(seconds=30)
+                    historAcum = 0
+                    for pulse in self.digitalCounterList[x]['pulseHistor']
+                        if pulse < now30:
+                            self.digitalCounterList[x]['pulseHistor'].remove(pulse)
+                        else:
+                            historAcum += 1
+                                      
                     
                     device.updateStateOnServer(key='onOffState', value=newValue)
                     device.updateStateOnServer("accumEnergyTotal", accumEnergyTotal, uiValue=logValue, decimalPlaces=3)
