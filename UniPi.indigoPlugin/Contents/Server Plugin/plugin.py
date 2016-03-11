@@ -90,7 +90,8 @@ class Plugin(indigo.PluginBase):
         elif device.deviceTypeId == u"UniPiDigitalCounter":
             device.updateStateImageOnServer(indigo.kStateImageSel.EnergyMeterOn)
             if device.id not in self.digitalCounterList:
-                self.digitalCounterList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"]), 'pulseHistor':[]}
+               
+                self.digitalCounterList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':int(device.pluginProps["circuit"]), 'lastTimeSensor': datetime.datetime.now(), 'pulseHistor':[]}
                 
         elif device.deviceTypeId == u"UniPiAnalogInput":
             if device.id not in self.analogInputList:
@@ -751,6 +752,7 @@ class Plugin(indigo.PluginBase):
                 if not accumEnergyTotal == device.states['accumEnergyTotal']:
                     now   = datetime.datetime.now()       
                     self.digitalCounterList[x]['pulseHistor'].insert(0,now)  
+                    self.digitalCounterList[x]['lastTimeSensor'] = now
                     
                     now30 = now - datetime.timedelta(seconds=30)
                     historAcum = 0
