@@ -136,13 +136,13 @@ class Plugin(indigo.PluginBase):
     
     def deviceStopComm(self,device):
         indigo.server.log (u"Stopping device \"%s\" of type \"%s\"" % (device.name, device.deviceTypeId))
-        self.delDeviceFromList(device)   
+        self.deleteDeviceFromList(device)   
 
     def deviceDeleted(self, device):
         indigo.server.log (u"Deleted device \"%s\" of type \"%s\"" % (device.name, device.deviceTypeId))
-        self.delDeviceFromList(device)  
+        self.deleteDeviceFromList(device)  
  
-    def delDeviceFromList(self,device):
+    def deleteDeviceFromList(self,device):
         if device.deviceTypeId == u"UniPiBoard":
             if device.id in self.boardList:
                 self.debugLog("Stoping UniPi board device: " + device.name)
@@ -267,7 +267,9 @@ class Plugin(indigo.PluginBase):
     def closedDeviceConfigUi(self, valuesDict, userCancelled, typeId, devId):
         if userCancelled is False:
             indigo.server.log ("Device preferences were updated.")
-
+            self.deleteDeviceFromList (device)
+            self.addDeviceToList (device)
+            
     def closedPrefsConfigUi ( self, valuesDict, UserCancelled):
         #   If the user saves the preferences, reload the preferences
         if UserCancelled is False:
