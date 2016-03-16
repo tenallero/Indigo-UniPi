@@ -758,7 +758,7 @@ class Plugin(indigo.PluginBase):
                     
                     now30 = now - datetime.timedelta(seconds=30)
                     historAcum = 0
-                    for pulse in self.digitalCounterList[x]['pulseHistor']
+                    for pulse in self.digitalCounterList[x]['pulseHistor']:
                         if pulse < now30:
                             self.digitalCounterList[x]['pulseHistor'].remove(pulse)
                         else:
