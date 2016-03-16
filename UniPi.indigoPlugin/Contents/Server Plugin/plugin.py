@@ -780,31 +780,34 @@ class Plugin(indigo.PluginBase):
         #puerta.updateStateOnServer("brightnessLevel", brightnessLevel)
         pass
     def setIndigoStateTempSensor(self,mapObject):
-        deviceBoard = indigo.devices[mapObject["deviceBoard"]]        
-        itemCircuit = mapObject["circuit"]        
-        itemAddress = mapObject["address"]      
-        itemValue = float(mapObject["value"])
-        if itemAddress > "":
-            itemCircuit = itemAddress
-        for x in self.tempSensorList:
-            itemList = self.tempSensorList[x]
-            if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == itemCircuit:
-                device = itemList["ref"]
-                #self.debugLog(device.name + ": setIndigoStateTempSensor.")  
-                
-                try:
-                    newValue = round(itemValue,1)
-                    logValue = str(newValue) + u" °C"
+        try:
+            deviceBoard = indigo.devices[mapObject["deviceBoard"]]        
+            itemCircuit = mapObject["circuit"]        
+            itemAddress = mapObject["address"]      
+            itemValue = float(mapObject["value"])
+            if itemAddress > "":
+                itemCircuit = itemAddress
+            for x in self.tempSensorList:
+                itemList = self.tempSensorList[x]
+                if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == itemCircuit:
+                    device = itemList["ref"]
+                    #self.debugLog(device.name + ": setIndigoStateTempSensor.")  
+                    
+                    try:
+                        newValue = round(itemValue,1)
+                        logValue = str(newValue) + u" °C"
 
-                    if not newValue == device.states['sensorValue']:
-                        device.updateStateOnServer('sensorValue', newValue, uiValue=logValue)
-                        if abs(itemList["logLastValue"] - newValue) > 0.2:
-                            self.tempSensorList[x]["logLastValue"] = newValue
-                            indigo.server.log (u'received "' + device.name + '" sensor value is ' + logValue)
-                except Exception,e:
-                    self.errorLog (u"Error: " + str(e))
-                    pass
- 
+                        if not newValue == device.states['sensorValue']:
+                            device.updateStateOnServer('sensorValue', newValue, uiValue=logValue)
+                            if abs(itemList["logLastValue"] - newValue) > 0.2:
+                                self.tempSensorList[x]["logLastValue"] = newValue
+                                indigo.server.log (u'received "' + device.name + '" sensor value is ' + logValue)
+                    except Exception,e:
+                        self.errorLog (u"Error: " + str(e))
+                        pass
+        except Exception, e:
+            self.errorLog(u"Error: " + str(e))
+                
 
     def sendActionToCircuit(self, device, action):
         addressWrite = ''
