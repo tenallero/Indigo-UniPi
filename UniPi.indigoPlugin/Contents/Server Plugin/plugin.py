@@ -602,7 +602,10 @@ class Plugin(indigo.PluginBase):
                 
         mapObject["dev"] = message["dev"]
         mapObject["circuit"] = message["circuit"]
-        mapObject["value"] = message["value"]
+        if message.has_key("bitvalue"):
+            mapObject["value"] = message["bitvalue"]
+        else:
+            mapObject["value"] = message["value"]
 
         if message.has_key("address"):
             mapObject["address"] = message["address"]
