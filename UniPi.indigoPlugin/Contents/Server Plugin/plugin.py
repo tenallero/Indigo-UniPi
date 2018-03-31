@@ -32,7 +32,7 @@ class Plugin(indigo.PluginBase):
         self.analogInputList = {}
         self.analogOutputList = {}
         self.tempSensorList = {}
-
+        self.humiditySensorList = {}
         self.websocketEnabled = True
 
 
@@ -56,7 +56,7 @@ class Plugin(indigo.PluginBase):
         if device.deviceTypeId == u"UniPiBoard":
             #self.updateDeviceState (device,'state' ,'off')
             device.updateStateOnServer(key='onOffState', value=False)
-            device.updateStateImageOnServer(indigo.kStateImageSel.PowerOff)
+            device.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
             propsAddress = ''
             propsPort = ''
 
@@ -105,7 +105,11 @@ class Plugin(indigo.PluginBase):
             device.updateStateImageOnServer(indigo.kStateImageSel.TemperatureSensorOn)
             if device.id not in self.tempSensorList:
                 self.tempSensorList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':device.pluginProps["circuit"], 'logLastValue':0.0}
-              
+
+        elif device.deviceTypeId == u"UniPiHumiditySensor":
+            device.updateStateImageOnServer(indigo.kStateImageSel.HumiditySensorOn)
+            if device.id not in self.humiditySensorList:
+                self.humiditySensorList[device.id] = {'ref':device, 'unipiSel':int(device.pluginProps["unipiSel"]), 'circuit':device.pluginProps["circuit"], 'logLastValue':0.0}
                
 
     def deviceUpdateAddress(self,device):
@@ -165,6 +169,9 @@ class Plugin(indigo.PluginBase):
         if device.deviceTypeId == u"UniPiTempSensor":
             if device.id in self.tempSensorList:              
                 del self.tempSensorList[device.id]
+        if device.deviceTypeId == u"UniPiHumiditySensor":
+            if device.id in self.humiditySensorList:              
+                del self.humiditySensorList[device.id]
 
     def startup(self):
         self.loadPluginPrefs()
@@ -257,6 +264,14 @@ class Plugin(indigo.PluginBase):
                 errorMsgDict[u'circuit'] = u"Need to choose a 1-Wire address"
                 return (False, valuesDict, errorMsgDict)
             pass
+        if typeId == u"UniPiHumiditySensor":
+            if int(valuesDict[u'unipiSel']) <= 0:
+                errorMsgDict[u'unipiSel'] = u"Need to choose a Unipi device"
+                return (False, valuesDict, errorMsgDict)
+            if valuesDict[u'circuit'].strip()  == "":
+                errorMsgDict[u'circuit'] = u"Need to choose a 1-Wire address"
+                return (False, valuesDict, errorMsgDict)
+            pass
 
         return (True, valuesDict)
 
@@ -264,11 +279,11 @@ class Plugin(indigo.PluginBase):
         self.debugLog(u"validating Prefs called")
         return (True, valuesDict)
 
-    def closedDeviceConfigUi(self, valuesDict, userCancelled, typeId, devId):
+    def closedDeviceConfigUi(self, valuesDict, userCancelled, typeId, deviceId):
         if userCancelled is False:
             indigo.server.log ("Device preferences were updated.")
-            self.deleteDeviceFromList (device)
-            self.addDeviceToList (device)
+            self.deleteDeviceFromList (indigo.devices[deviceId])
+            self.addDeviceToList (indigo.devices[deviceId])
             
     def closedPrefsConfigUi ( self, valuesDict, UserCancelled):
         #   If the user saves the preferences, reload the preferences
@@ -418,7 +433,6 @@ class Plugin(indigo.PluginBase):
                 self.boardList[unipi]['websocketok'] = True
                 self.updateDeviceState (deviceBoard,'state' ,'on')
                 
-                #self.boardRequestStatus(deviceBoard,False)
                 mapObject = self.getMapFromMessage(obj)
                 mapObject["deviceBoard"] = deviceBoard.id
                 self.setIndigoStateFromJson (mapObject)
@@ -428,7 +442,6 @@ class Plugin(indigo.PluginBase):
         unipi = self.getUnipiBoardIndexFromUrl(ws.url)
         if not unipi == None:
             self.boardList[unipi]['websocketok'] = False
-            #self.boardList[unipi]["ref"].updateStateImageOnServer(indigo.kStateImageSel.Error)
 
     def on_wsclose(self, ws):
         unipi = self.getUnipiBoardIndexFromUrl(ws.url)
@@ -543,7 +556,7 @@ class Plugin(indigo.PluginBase):
             self.errorLog (u"Error: " + str(e))
             if deviceBoard.states['onOffState'] == True:
                 deviceBoard.updateStateOnServer(key='onOffState', value=False)
-                deviceBoard.updateStateImageOnServer(indigo.kStateImageSel.PowerOff)
+                deviceBoard.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
                 deviceBoard.setErrorStateOnServer('Lost')
                 for deviceItem in indigo.devices.itervalues(filter="self"):
                     if deviceItem.pluginProps.has_key("unipiSel"):
@@ -557,7 +570,7 @@ class Plugin(indigo.PluginBase):
             if deviceBoard.states['onOffState'] == False:
                 deviceBoard.setErrorStateOnServer(None)
                 deviceBoard.updateStateOnServer(key='onOffState', value=True)
-                deviceBoard.updateStateImageOnServer(indigo.kStateImageSel.PowerOn)                
+                deviceBoard.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)                
                 for deviceItem in indigo.devices.itervalues(filter="self"):
                     if deviceItem.pluginProps.has_key("unipiSel"):
                         if deviceItem.pluginProps["unipiSel"] == deviceBoard.id:        
@@ -595,6 +608,13 @@ class Plugin(indigo.PluginBase):
             "circuit": '0',
             "address": '',
             "value": 0,
+            "tempValue": False,
+            "humidityValue": False,
+            "temp": 0.0,
+            "humidity": 0.0,
+            "vad": 0.0,
+            "vdd": 0.0,
+            "typ":'',
             "counter_mode": False,
             "debounce": 0,
             "time": 0
@@ -605,7 +625,22 @@ class Plugin(indigo.PluginBase):
         if message.has_key("bitvalue"):
             mapObject["value"] = message["bitvalue"]
         else:
-            mapObject["value"] = message["value"]
+            if message.has_key("value"):
+                mapObject["value"] = message["value"]
+
+        if message.has_key("temp"):
+            mapObject["temp"] = float(message["temp"])
+            mapObject["tempValue"] = True
+        if message.has_key("humidity"):
+            mapObject["humidity"] = float(message["humidity"])
+            mapObject["humidityValue"] = True
+
+        if message.has_key("vad"):
+            mapObject["vad"] = float(message["vad"])
+        if message.has_key("vdd"):
+            mapObject["vdd"] = float(message["vdd"])
+        if message.has_key("typ"):
+            mapObject["typ"] = message["typ"]
 
         if message.has_key("address"):
             mapObject["address"] = message["address"]
@@ -779,25 +814,29 @@ class Plugin(indigo.PluginBase):
                     
     def setIndigoStateAnalogInput(self,mapObject):
         pass
+
     def setIndigoStateAnalogOutput(self,mapObject):
         #puerta.updateStateOnServer("brightnessLevel", brightnessLevel)
         pass
+
     def setIndigoStateTempSensor(self,mapObject):
         try:
             deviceBoard = indigo.devices[mapObject["deviceBoard"]]        
             itemCircuit = mapObject["circuit"]        
-            itemAddress = mapObject["address"]      
-            itemValue = float(mapObject["value"])
+            itemAddress = mapObject["address"]   
+            tempValue     = float(mapObject["value"])   
+            humidityValue = 0
+            if mapObject["tempValue"] == True:
+                tempValue = float(mapObject["temp"])
+
             if itemAddress > "":
                 itemCircuit = itemAddress
             for x in self.tempSensorList:
                 itemList = self.tempSensorList[x]
                 if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == itemCircuit:
                     device = itemList["ref"]
-                    #self.debugLog(device.name + ": setIndigoStateTempSensor.")  
-                    
                     try:
-                        newValue = round(itemValue,1)
+                        newValue = round(tempValue,1)
                         logValue = str(newValue) + u" °C"
 
                         if not newValue == device.states['sensorValue']:
@@ -806,11 +845,44 @@ class Plugin(indigo.PluginBase):
                                 self.tempSensorList[x]["logLastValue"] = newValue
                                 indigo.server.log (u'received "' + device.name + '" sensor value is ' + logValue)
                     except Exception,e:
-                        self.errorLog (u"Error: " + str(e))
+                        self.errorLog (u"setIndigoStateTempSensor.1.Error: " + str(e))
                         pass
+            if mapObject["humidityValue"] == True:
+                humidityValue = float(mapObject["humidity"])
+                if mapObject["typ"] == 'DS2438':
+
+                    # Taaralabs implementa un DS2438
+                    # Pero un sensor HIH-5031
+                    # Para un sensor HIH-4000 los cálculos son diferentes
+                    #http://rants.dyer.com.hk/rpi/humidity_1w.html
+                    #http://www.loxwiki.eu/pages/viewpage.action?pageId=917723
+                    #https://www.loxforum.com/forum/german/software-konfiguration-programm-und-visualisierung/93720-luftfeuchte-messen-mit-hih-5031-an-einem-ds2438-1-wire
+                    vad = float(mapObject["vad"])
+                    vdd = float(mapObject["vdd"])
+                    rh = (vad / vdd - 0.1515) / 0.00636
+                    humidityValue =  rh / (1.0546 - 0.00216 * tempValue)
+                    humidityValue = round(humidityValue,0)
+                    
+                if humidityValue <= 100:
+                    for x in self.humiditySensorList:
+                        itemList = self.humiditySensorList[x]
+                        if itemList["unipiSel"] == deviceBoard.id and itemList["circuit"] == itemCircuit:
+                            device = itemList["ref"]
+                            try:
+                                newValue = int(humidityValue)
+                                logValue = str(newValue) + u"%"
+
+                                if not newValue == device.states['sensorValue']:
+                                    device.updateStateOnServer('sensorValue', newValue, uiValue=logValue)
+                                    self.humiditySensorList[x]["logLastValue"] = newValue
+                                    indigo.server.log (u'received "' + device.name + '" sensor value is ' + logValue)
+                            except Exception,e:
+                                self.errorLog (u"setIndigoStateTempSensor.2.Error: " + str(e))
+                                pass
+
+
         except Exception, e:
-            self.errorLog(u"Error: " + str(e))
-                
+            self.errorLog(u"setIndigoStateTempSensor.3.Error: " + str(e))
 
     def sendActionToCircuit(self, device, action):
         addressWrite = ''
